@@ -12,6 +12,10 @@ like Sumplify, Text compactor, etc.
 To make the task easier, the TAC and DUC dataset have been simplified
 therefore you can get cnn news story and daily mail news data
 
+FOR TAC DATASET, 100 CNN NEWS STORY HAVE BEEN UPLOADED BUT YOU CAN GET ALL IF YOU FOLLOW THE ABOVE STEPS
+
+
+
 
 
 
