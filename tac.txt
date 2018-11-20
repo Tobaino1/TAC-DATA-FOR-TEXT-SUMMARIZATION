@@ -1,0 +1,379 @@
+1
+2
+3
+4
+5
+6	# load all stories in a directory
+def load_stories(directory):
+for name in listdir(directory):
+filename = directory + '/' + name
+# load document
+doc = load_doc(filename)
+Each document can be separated into the news story text and the highlights or summary text.
+The split for these two points is the first occurrence of the ‘@highlight‘ token. Once split, we can organize the highlights into a list.
+The function below named split_story() implements this behavior and splits a given loaded document text into a story and list of highlights.
+1
+2
+3
+4
+5
+6
+7
+8
+9	# split a document into news story and highlights
+def split_story(doc):
+# find first highlight
+index = doc.find('@highlight')
+# split into story and highlights
+story, highlights = doc[:index], doc[index:].split('@highlight')
+# strip extra white space around each highlight
+highlights = [h.strip() for h in highlights if len(h) > 0]
+return story, highlights
+We updated the load_stories() function to call the split_story() function for each loaded document and then store the results in a list.
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12	# load all stories in a directory
+def load_stories(directory):
+all_stories = list()
+for name in listdir(directory):
+filename = directory + '/' + name
+# load document
+doc = load_doc(filename)
+# split into story and highlights
+story, highlights = split_story(doc)
+# store
+all_stories.append({'story':story, 'highlights':highlights})
+return all_stories
+Tying all of this together, the complete example of loading the entire dataset is listed below.
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39	from os import listdir
+
+# load doc into memory
+def load_doc(filename):
+# open the file as read only
+file = open(filename, encoding='utf-8')
+# read all text
+text = file.read()
+# close the file
+file.close()
+return text
+
+# split a document into news story and highlights
+def split_story(doc):
+# find first highlight
+index = doc.find('@highlight')
+# split into story and highlights
+story, highlights = doc[:index], doc[index:].split('@highlight')
+# strip extra white space around each highlight
+highlights = [h.strip() for h in highlights if len(h) > 0]
+return story, highlights
+
+# load all stories in a directory
+def load_stories(directory):
+stories = list()
+for name in listdir(directory):
+filename = directory + '/' + name
+# load document
+doc = load_doc(filename)
+# split into story and highlights
+story, highlights = split_story(doc)
+# store
+stories.append({'story':story, 'highlights':highlights})
+return stories
+
+# load stories
+directory = 'cnn/stories/'
+stories = load_stories(directory)
+print('Loaded Stories %d' % len(stories))
+Running the example prints the number of loaded stories.
+1	Loaded Stories 92,579
+We can now access the loaded story and highlight data, for example:
+1 print(stories[4]['story'])
+2 print(stories[4]['highlights'])
+
+Data Cleaning
+Now that we can load the story data, pre-processing the text by cleaning it can be achieved.
+1
+2
+3
+4	# strip source cnn office if it exists
+index = line.find('(CNN) -- ')
+if index > -1:
+line = line[index+len('(CNN)'):]
+Split the line using white space tokens:
+
+1
+2	# tokenize on white space
+line = line.split()
+Normalize the case to lowercase.
+1
+2	# convert to lower case
+line = [word.lower() for word in line]
+Remove all punctuation characters from each token (Python 3 specific).
+1
+2
+3
+4	# prepare a translation table to remove punctuation
+table = str.maketrans('', '', string.punctuation)
+# remove punctuation from each token
+line = [w.translate(table) for w in line]
+Remove any words that have non-alphabetic characters.
+1
+2	# remove tokens with numbers in them
+line = [word for word in line if word.isalpha()]
+Putting this all together, below is a new function named clean_lines() that takes a list of lines of text and returns a list of clean lines of text.
+
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23	# clean a list of lines
+def clean_lines(lines):
+cleaned = list()
+# prepare a translation table to remove punctuation
+table = str.maketrans('', '', string.punctuation)
+for line in lines:
+# strip source cnn office if it exists
+index = line.find('(CNN) -- ')
+if index > -1:
+line = line[index+len('(CNN)'):]
+# tokenize on white space
+line = line.split()
+# convert to lower case
+line = [word.lower() for word in line]
+# remove punctuation from each token
+line = [w.translate(table) for w in line]
+# remove tokens with numbers in them
+line = [word for word in line if word.isalpha()]
+# store as string
+cleaned.append(' '.join(line))
+# remove empty strings
+cleaned = [c for c in cleaned if len(c) > 0]
+return cleaned
+We can call this for a story, by first converting it to a line of text. The function can be called directly on the list of highlights.
+1
+2	example['story'] = clean_lines(example['story'].split('\n'))
+example['highlights'] = clean_lines(example['highlights'])
+The complete example of loading and cleaning the dataset is listed below.
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69	from os import listdir
+import string
+
+# load doc into memory
+def load_doc(filename):
+# open the file as read only
+file = open(filename, encoding='utf-8')
+# read all text
+text = file.read()
+# close the file
+file.close()
+return text
+
+# split a document into news story and highlights
+def split_story(doc):
+# find first highlight
+index = doc.find('@highlight')
+# split into story and highlights
+story, highlights = doc[:index], doc[index:].split('@highlight')
+# strip extra white space around each highlight
+highlights = [h.strip() for h in highlights if len(h) > 0]
+return story, highlights
+
+# load all stories in a directory
+def load_stories(directory):
+stories = list()
+for name in listdir(directory):
+filename = directory + '/' + name
+# load document
+doc = load_doc(filename)
+# split into story and highlights
+story, highlights = split_story(doc)
+# store
+stories.append({'story':story, 'highlights':highlights})
+return stories
+
+# clean a list of lines
+def clean_lines(lines):
+cleaned = list()
+# prepare a translation table to remove punctuation
+table = str.maketrans('', '', string.punctuation)
+for line in lines:
+# strip source cnn office if it exists
+index = line.find('(CNN) -- ')
+if index > -1:
+line = line[index+len('(CNN)'):]
+# tokenize on white space
+line = line.split()
+# convert to lower case
+line = [word.lower() for word in line]
+# remove punctuation from each token
+line = [w.translate(table) for w in line]
+# remove tokens with numbers in them
+line = [word for word in line if word.isalpha()]
+# store as string
+cleaned.append(' '.join(line))
+# remove empty strings
+cleaned = [c for c in cleaned if len(c) > 0]
+return cleaned
+
+# load stories
+directory = 'cnn/stories/'
+stories = load_stories(directory)
+print('Loaded Stories %d' % len(stories))
+
+# clean stories
+for example in stories:
+example['story'] = clean_lines(example['story'].split('\n'))
+example['highlights'] = clean_lines(example['highlights'])
+Note that the story is now stored as a list of clean lines, nominally, separated by sentences.
+
+Save Clean Data
+Finally, now that the data has been cleaned, we can save it to file. An easy way to save the cleaned data is to Pickle the list of stories and highlights.
+For example:
+1
+2
+3	# save to file
+from pickle import dump
+dump(stories, open('cnn_dataset.pkl', 'wb'))
+This will create a new file named cnn_dataset.pkl with all of the cleaned data. This file will be about 374 Megabytes in size.
+We can then load it later and use it with a text summarization model as follows:
+1
+2
+3	# load from file
+stories = load(open('cnn_dataset.pkl', 'rb'))
+print('Loaded Stories %d' % len(stories))
+
+
+
+
